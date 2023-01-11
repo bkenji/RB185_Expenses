@@ -6,3 +6,6 @@ CREATE TABLE expenses (
  memo text NOT NULL,
  created_on date DEFAULT now() 
 );
+
+ALTER TABLE expenses 
+ADD CHECK (amount > 0);

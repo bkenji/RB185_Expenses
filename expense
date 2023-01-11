@@ -37,7 +37,7 @@ def add_expense
   else
     connection.exec("INSERT INTO expenses(amount, memo, created_on)
                       VALUES (#{ARGV[1]}, '#{ARGV[2]}', DEFAULT);")
-  puts "\"#{ARGV[2]}\" added to expenses."
+    puts "\"#{ARGV[2]}\" added to expenses."
   end
 end
 

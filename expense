@@ -2,4 +2,14 @@
 
 require "pg"
 
-puts "Hello World"
+connection = PG.connect(dbname: "expenses")
+result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
+
+result.each do |tuple|
+  columns = [ tuple["id"].rjust(3),
+              tuple["created_on"].rjust(10),
+              tuple["amount"].rjust(10),
+              tuple["memo"] ]
+            
+  puts columns.join(" | ")
+end

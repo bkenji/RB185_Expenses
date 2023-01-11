@@ -31,20 +31,23 @@ def list
   end
 end
 
-def add_expense
-  if ARGV.size == 1 
-    abort "You must provide an amount and memo"
+def add_expense(args)
+  amount = args[0]
+  memo = args[1..-1].join(" ")
+
+  if ARGV.size <= 2 
+    abort "Argument missing: you must provide both an amount and a memo note"
   else
     sql = ("INSERT INTO expenses(amount, memo, created_on)
-            VALUES (#{ARGV[1]}, '#{ARGV[2]}', DEFAULT);")
+            VALUES (#{amount}, '#{memo}', DEFAULT);")
     CONNECTION.exec(sql)
-    puts "\"#{ARGV[2]}\" added to expenses."
+    puts "\"#{memo}\" added to expenses."
   end
 end
 
 
 case ARGV[0]
 when 'list' then list
-when 'add' then add_expense
+when 'add' then add_expense(ARGV[1..-1])
 else display_help
 end

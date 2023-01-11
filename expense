@@ -2,14 +2,48 @@
 
 require "pg"
 
-connection = PG.connect(dbname: "expenses")
-result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
+def display_help 
+  puts <<~HELP
+    An expense recording system
 
-result.each do |tuple|
-  columns = [ tuple["id"].rjust(3),
-              tuple["created_on"].rjust(10),
-              tuple["amount"].rjust(10),
-              tuple["memo"] ]
-            
-  puts columns.join(" | ")
+    Commands:
+
+    add AMOUNT MEMO - record a new expense
+    clear - delete all expenses
+    list - list all expenses
+    delete NUMBER - remove expense with id NUMBER
+    search QUERY - list expenses with a matching memo field
+  HELP
+end
+
+def list
+  connection = PG.connect(dbname: "expenses")
+  result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
+
+  result.each do |tuple|
+    columns = [ tuple["id"].rjust(3),
+                tuple["created_on"].rjust(10),
+                tuple["amount"].rjust(10),
+                tuple["memo"] ]
+              
+    puts columns.join(" | ")
+  end
+end
+
+def add_expense
+  connection = PG.connect(dbname: "expenses")
+  if ARGV.size == 1 
+    puts "You must provide an amount and memo"
+  else
+    connection.exec("INSERT INTO expenses(amount, memo, created_on)
+                      VALUES (#{ARGV[1]}, '#{ARGV[2]}', DEFAULT);")
+  puts "\"#{ARGV[2]}\" added to expenses."
+  end
+end
+
+
+case ARGV[0]
+when 'list' then list
+when 'add' then add_expense
+else display_help
 end

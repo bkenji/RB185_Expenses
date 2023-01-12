@@ -2,52 +2,77 @@
 
 require "pg"
 
-CONNECTION = PG.connect(dbname: "expenses")
+# CLI Class Responsibility - parsing and processing arguments passed to the CLI; Calling appropriate methods on ExpenseData objects:
 
-def display_help 
-  puts <<~HELP
-    An expense recording system
+class CLI
+	attr_reader :database
+	
+	def initialize
+		@database = ExpenseData.new
+	end
 
-    Commands:
+  def self.run(args)
+    CLI.new.run(args)
+  end
 
-    add AMOUNT MEMO - record a new expense
-    clear - delete all expenses
-    list - list all expenses
-    delete NUMBER - remove expense with id NUMBER
-    search QUERY - list expenses with a matching memo field
-  HELP
+	def run(args)
+	  case args[0]
+		when 'list' then database.list_expenses
+		when 'add' then database.add_expense(args[1..-1])
+		else display_help
+    end
+	end
+
+  def display_help 
+    puts <<~HELP
+      An expense recording system
+      Commands:
+      add AMOUNT MEMO - record a new expense
+      clear - delete all expenses
+      list - list all expenses
+      delete NUMBER - remove expense with id NUMBER
+      search QUERY - list expenses with a matching memo field
+    HELP
+  end
 end
 
-def list 
-  result = CONNECTION.exec("SELECT * FROM expenses ORDER BY created_on;")
+# ExpenseData Responsibility - Communicate with Database / Format and Display results back to Terminal:
 
-  result.each do |tuple|
-    columns = [ tuple["id"].rjust(3),
+class ExpenseData
+	attr_reader :connection
+	
+	def initialize
+	  @connection = PG.connect(dbname: "expenses")
+	end
+
+
+  def list_expenses 
+    result = connection.exec("SELECT * FROM expenses ORDER BY 
+                              created_on;")
+
+	  result.each do |tuple|
+	    columns = [ tuple["id"].rjust(3),
                 tuple["created_on"].rjust(10),
                 tuple["amount"].rjust(10),
                 tuple["memo"] ]
               
-    puts columns.join(" | ")
-  end
+	    puts columns.join(" | ")
+	  end
+	end
+
+	def add_expense(args)
+	  amount = args[0]
+	  memo = args[1..-1].join(" ")
+	
+	  if ARGV.size <= 2 
+	    abort "Argument missing: you must provide both an amount and a memo note"
+	  else
+	    sql = ("INSERT INTO expenses(amount, memo, created_on)
+	            VALUES ($1, $2, DEFAULT);")
+	    connection.exec_params(sql, [amount, memo])
+	    puts "\"#{memo}\" added to expenses."
+	  end
+	end
 end
 
-def add_expense(args)
-  amount = args[0]
-  memo = args[1..-1].join(" ")
-
-  if ARGV.size <= 2 
-    abort "Argument missing: you must provide both an amount and a memo note"
-  else
-    sql = ("INSERT INTO expenses(amount, memo, created_on)
-            VALUES ($1, $2, DEFAULT);")
-    CONNECTION.exec_params(sql, [amount, memo])
-    puts "\"#{memo}\" added to expenses."
-  end
-end
-
-
-case ARGV[0]
-when 'list' then list
-when 'add' then add_expense(ARGV[1..-1])
-else display_help
-end
+CLI.run(ARGV)

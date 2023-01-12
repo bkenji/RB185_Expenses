@@ -39,8 +39,8 @@ def add_expense(args)
     abort "Argument missing: you must provide both an amount and a memo note"
   else
     sql = ("INSERT INTO expenses(amount, memo, created_on)
-            VALUES (#{amount}, '#{memo}', DEFAULT);")
-    CONNECTION.exec(sql)
+            VALUES ($1, $2, DEFAULT);")
+    CONNECTION.exec_params(sql, [amount, memo])
     puts "\"#{memo}\" added to expenses."
   end
 end

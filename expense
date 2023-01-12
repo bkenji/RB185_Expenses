@@ -18,15 +18,23 @@ class CLI
 	def run(args)
 	  case args[0]
 		when 'list' then database.list_expenses
-		when 'add' then database.add_expense(args[1..-1])
-		else display_help
+		when 'add' 
+      if args.size <= 2 
+	      abort "Argument missing: you must provide both an amount and a memo note"
+      else 
+        database.add_expense(args[1..-1])
+      end
+		else 
+      display_help
     end
 	end
 
   def display_help 
     puts <<~HELP
       An expense recording system
+
       Commands:
+
       add AMOUNT MEMO - record a new expense
       clear - delete all expenses
       list - list all expenses
@@ -45,10 +53,8 @@ class ExpenseData
 	  @connection = PG.connect(dbname: "expenses")
 	end
 
-
   def list_expenses 
-    result = connection.exec("SELECT * FROM expenses ORDER BY 
-                              created_on;")
+    result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
 
 	  result.each do |tuple|
 	    columns = [ tuple["id"].rjust(3),
@@ -64,15 +70,13 @@ class ExpenseData
 	  amount = args[0]
 	  memo = args[1..-1].join(" ")
 	
-	  if ARGV.size <= 2 
-	    abort "Argument missing: you must provide both an amount and a memo note"
-	  else
-	    sql = ("INSERT INTO expenses(amount, memo, created_on)
+	  sql = ("INSERT INTO expenses(amount, memo, created_on)
 	            VALUES ($1, $2, DEFAULT);")
-	    connection.exec_params(sql, [amount, memo])
-	    puts "\"#{memo}\" added to expenses."
-	  end
+	  connection.exec_params(sql, [amount, memo])
+	  puts "\"#{memo}\" added to expenses."
 	end
 end
+
+# Run application:
 
 CLI.run(ARGV)

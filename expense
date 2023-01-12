@@ -24,6 +24,12 @@ class CLI
       else 
         database.add_expense(args[1..-1])
       end
+    when 'search' 
+      if args.size < 2
+        abort "Search parameter missing"
+      else 
+        database.search_expenses(args[1.. -1])
+      end
 		else 
       display_help
     end
@@ -55,8 +61,29 @@ class ExpenseData
 
   def list_expenses 
     result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
+    display_expenses(result)
+	end
 
-	  result.each do |tuple|
+	def add_expense(args)
+	  amount = args[0]
+	  memo = args[1..-1].join(" ")
+	
+	  sql = "INSERT INTO expenses(amount, memo, created_on)
+	            VALUES ($1, $2, DEFAULT);"
+	  connection.exec_params(sql, [amount, memo])
+	  puts "\"#{memo}\" added to expenses."
+	end
+
+  def search_expenses(args)
+    search_parameters = "%#{args.join(" ")}%"
+
+    sql = "SELECT * FROM expenses WHERE memo ILIKE $1;"
+    result = connection.exec_params(sql, [search_parameters])
+    display_expenses(result)
+  end
+
+  def display_expenses(result)
+    result.each do |tuple|
 	    columns = [ tuple["id"].rjust(3),
                 tuple["created_on"].rjust(10),
                 tuple["amount"].rjust(10),
@@ -64,18 +91,11 @@ class ExpenseData
               
 	    puts columns.join(" | ")
 	  end
-	end
+  end
 
-	def add_expense(args)
-	  amount = args[0]
-	  memo = args[1..-1].join(" ")
-	
-	  sql = ("INSERT INTO expenses(amount, memo, created_on)
-	            VALUES ($1, $2, DEFAULT);")
-	  connection.exec_params(sql, [amount, memo])
-	  puts "\"#{memo}\" added to expenses."
-	end
 end
+
+
 
 # Run application:
 

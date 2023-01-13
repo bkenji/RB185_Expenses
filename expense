@@ -20,15 +20,23 @@ class CLI
 		when 'list' then database.list_expenses
 		when 'add' 
       if args.size <= 2 
-	      abort "Argument missing: you must provide both an amount and a memo note"
+	      abort "Argument missing: you must provide both an amount and a memo note."
       else 
         database.add_expense(args[1..-1])
       end
     when 'search' 
       if args.size < 2
-        abort "Search parameter missing"
+        abort "Search parameter missing."
       else 
         database.search_expenses(args[1.. -1])
+      end
+    when 'delete'
+      if args[1].nil? 
+        abort "id value missing."
+      elsif args[1].to_i.to_s != args[1]
+        abort "id must be an integer."
+      else
+        database.delete_expense(args[1])
       end
 		else 
       display_help
@@ -82,6 +90,22 @@ class ExpenseData
     display_expenses(result)
   end
 
+  def delete_expense(id)
+    query = "SELECT * FROM expenses WHERE id = $1"
+    result = connection.exec_params(query, [id])
+
+    sql = "DELETE FROM expenses WHERE id = $1"
+    if result.ntuples.zero?
+      puts "There is no expense with the id '#{id}'."
+    else 
+     connection.exec_params(sql, [id])
+      puts "The following expense has been deleted:"
+      display_expenses(result)
+    end
+  end
+
+  private 
+  
   def display_expenses(result)
     result.each do |tuple|
 	    columns = [ tuple["id"].rjust(3),
@@ -94,8 +118,6 @@ class ExpenseData
   end
 
 end
-
-
 
 # Run application:
 

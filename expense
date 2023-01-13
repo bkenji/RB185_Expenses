@@ -146,13 +146,6 @@ class ExpenseData
     else puts "There are #{count} expenses."
     end 
   end
-
-  def display_total
-    total_amount = connection.exec("SELECT sum(amount) FROM expenses;").values[0][0]
-    puts "---------------------------------------------"
-    puts "Total                   #{total_amount}"
-  end
-
 end
 
 # Run application:

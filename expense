@@ -1,6 +1,7 @@
 #! /usr/bin/env ruby
 
 require "pg"
+require "io/console"
 
 # CLI Class Responsibility - parsing and processing arguments passed to the CLI; Calling appropriate methods on ExpenseData objects:
 
@@ -38,6 +39,10 @@ class CLI
       else
         database.delete_expense(args[1])
       end
+    when 'clear'
+      puts "This will remove all expenses. Are you sure? (y/n)"
+      answer = STDIN.getch
+      database.delete_all_expenses if answer == "y"
 		else 
       display_help
     end
@@ -69,7 +74,9 @@ class ExpenseData
 
   def list_expenses 
     result = connection.exec("SELECT * FROM expenses ORDER BY created_on;")
-    display_expenses(result)
+    display_count(result)
+    display_expenses(result) if result.ntuples > 0
+
 	end
 
 	def add_expense(args)
@@ -87,6 +94,7 @@ class ExpenseData
 
     sql = "SELECT * FROM expenses WHERE memo ILIKE $1;"
     result = connection.exec_params(sql, [search_parameters])
+    display_count(result)
     display_expenses(result)
   end
 
@@ -104,8 +112,16 @@ class ExpenseData
     end
   end
 
+  # Remove all expenses from the system. Prompt user for confirmation before deletion.
+
+  def delete_all_expenses
+    sql = "DELETE FROM expenses;"
+    connection.exec(sql) 
+    puts "All expenses have been deleted."
+  end
+
   private 
-  
+
   def display_expenses(result)
     result.each do |tuple|
 	    columns = [ tuple["id"].rjust(3),
@@ -113,8 +129,28 @@ class ExpenseData
                 tuple["amount"].rjust(10),
                 tuple["memo"] ]
               
-	    puts columns.join(" | ")
+	    puts columns.join(" | ") 
 	  end
+   puts "-" * 50
+
+   total_amount = result.field_values("amount").map(&:to_f).sum
+
+   puts "Total #{total_amount.to_s.rjust(23)}"
+  end
+
+  def display_count(result)
+    count = result.ntuples
+    case count 
+    when 0 then puts "There are no expenses."
+    when 1 then puts "There is #{count} expense."
+    else puts "There are #{count} expenses."
+    end 
+  end
+
+  def display_total
+    total_amount = connection.exec("SELECT sum(amount) FROM expenses;").values[0][0]
+    puts "---------------------------------------------"
+    puts "Total                   #{total_amount}"
   end
 
 end

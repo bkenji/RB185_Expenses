@@ -43,6 +43,7 @@ class CLI
       puts "This will remove all expenses. Are you sure? (y/n)"
       answer = STDIN.getch
       database.delete_all_expenses if answer == "y"
+    when 'exist?' then p database.expenses_table_exist?
 		else 
       display_help
     end
@@ -70,6 +71,7 @@ class ExpenseData
 	
 	def initialize
 	  @connection = PG.connect(dbname: "expenses")
+    setup_schema if !expenses_table_exist?
 	end
 
   def list_expenses 
@@ -121,6 +123,27 @@ class ExpenseData
   end
 
   private 
+
+  
+  def setup_schema
+    sql = "CREATE TABLE expenses (
+      id serial PRIMARY KEY,
+      created_on date  NOT NULL DEFAULT now(),
+      amount numeric(6, 2) NOT NULL DEFAULT 0.00,
+      memo text NOT NULL
+    );"
+
+    connection.exec(sql)
+  end
+
+  def expenses_table_exist?
+    sql = "SELECT count(table_name) 
+           FROM information_schema.tables
+           WHERE table_name = 'expenses';"
+
+    result = connection.exec(sql)
+    result[0]["count"] != "0"
+  end
 
   def display_expenses(result)
     result.each do |tuple|
